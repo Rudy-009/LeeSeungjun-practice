@@ -8,10 +8,10 @@
 /// 유저 등록 API
 public struct RegisterRequest: Encodable {
     let username: String
-        let password: String
-        let name: String
-        let email: String
-        let age: Int
+    let password: String
+    let name: String
+    let email: String
+    let age: Int
 }
 
 /// HTTP 메서드 (Moya의 Method와 동일!)

@@ -27,7 +27,7 @@ final class LoginViewController_Network: BaseViewController {
         textField.placeholder = "Username (예: johndoe)"
         textField.borderStyle = .roundedRect
         textField.autocapitalizationType = .none
-        textField.text = "mj"  // 테스트용 기본값
+        textField.text = "Rudy"  // 테스트용 기본값
         textField.addPadding()
         return textField
     }()
@@ -46,7 +46,7 @@ final class LoginViewController_Network: BaseViewController {
         let textField = UITextField()
         textField.placeholder = "이름 (예: 홍길동)"
         textField.borderStyle = .roundedRect
-        textField.text = "이명진"  // 테스트용 기본값
+        textField.text = "이승준"  // 테스트용 기본값
         textField.addPadding()
         return textField
     }()
@@ -67,7 +67,7 @@ final class LoginViewController_Network: BaseViewController {
         textField.placeholder = "나이 (예: 25)"
         textField.borderStyle = .roundedRect
         textField.keyboardType = .numberPad
-        textField.text = "29"  // 테스트용 기본값
+        textField.text = "27"  // 테스트용 기본값
         textField.addPadding()
         return textField
     }()
@@ -75,7 +75,7 @@ final class LoginViewController_Network: BaseViewController {
     private lazy var registerButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("회원가입 (POST /api/v1/users)", for: .normal)
-        button.backgroundColor = .background // 여러분 에러
+        button.backgroundColor = .red // 여러분 에러
         button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         button.layer.cornerRadius = 8
@@ -94,9 +94,22 @@ final class LoginViewController_Network: BaseViewController {
         return button
     }()
     
+    private lazy var updateUserButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("회원정보 수정 (PATCH /api/v1/auth/users/\(userId)", for: .normal)
+        button.backgroundColor = .systemYellow
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        button.layer.cornerRadius = 8
+        button.addTarget(self, action: #selector(updateUserTapped), for: .touchUpInside)
+        return button
+    }()
+    
     // MARK: - Properties
     
     private let provider: NetworkProviding
+    
+    private var userId: Int?
     
     // MARK: - Init
     
@@ -129,7 +142,8 @@ final class LoginViewController_Network: BaseViewController {
             emailTextField,
             ageTextField,
             registerButton,
-            loginButton
+            loginButton,
+            updateUserButton
         )
     }
     
@@ -180,6 +194,12 @@ final class LoginViewController_Network: BaseViewController {
             $0.horizontalEdges.equalToSuperview().inset(20)
             $0.height.equalTo(55)
         }
+        
+        updateUserButton.snp.makeConstraints {
+            $0.top.equalTo(loginButton.snp.bottom).offset(12)
+            $0.horizontalEdges.equalToSuperview().inset(20)
+            $0.height.equalTo(55)
+        }
     }
     
     // MARK: - Actions
@@ -216,6 +236,14 @@ final class LoginViewController_Network: BaseViewController {
         // Swift Concurrency를 사용한 네트워크 요청!
         Task {
             await performLogin(username: username, password: password)
+        }
+    }
+    
+    @objc private func updateUserTapped() {
+        guard let userId = self.userId else { return }
+        
+        Task {
+            await performUpdateUser(userId: userId)
         }
     }
     
@@ -273,7 +301,11 @@ final class LoginViewController_Network: BaseViewController {
                 provider: provider
             )
             
-            // 성공 시 Welcome 화면으로 이동
+            // 성공 시
+            // User Id 저장
+            self.userId = response.userId
+            
+            // Welcome 화면으로 이동
             showAlert(title: "로그인 성공", message: response.message) { [weak self] in
                 self?.navigateToWelcome(userId: response.userId, userName: username)
             }
@@ -284,6 +316,30 @@ final class LoginViewController_Network: BaseViewController {
             showAlert(title: "로그인 실패", message: error.localizedDescription)
         } catch {
             print("🚨 [Login Unknown Error] \(error)")
+            showAlert(title: "로그인 실패", message: error.localizedDescription)
+        }
+        
+        loadingIndicator.stopAnimating()
+    }
+    
+    /// 회원 정보 수정 API 호출
+    @MainActor
+    private func performUpdateUser(userId: Int,) async {
+        loadingIndicator.startAnimating()
+        
+        do {
+            // UserAPI의 convenience method 사용
+            let response = try await UserAPI.update(userId, UpdateUserRequest(name: usernameTextField.text, email: emailTextField.text, age: Int(ageTextField.text ?? "0") ?? 0))
+            
+            // 성공 시
+            showAlert(title: "회원 정보 수정 성공", message: "")
+        } catch let error as NetworkError {
+            // 콘솔에 상세 에러 로그 출력
+            print("🚨 [Update User Error] \(error.detailedDescription)")
+            // 사용자에게는 친절한 메시지 표시
+            showAlert(title: "로그인 실패", message: error.localizedDescription)
+        } catch {
+            print("🚨 [Update User Unknown Error] \(error)")
             showAlert(title: "로그인 실패", message: error.localizedDescription)
         }
         

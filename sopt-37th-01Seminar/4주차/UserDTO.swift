@@ -17,6 +17,13 @@ public struct UserResponse: Decodable {
     let status: String
 }
 
+/// 개인정보 수정 요청 모델
+public struct UpdateUserRequest: Encodable {
+    let name: String? // 세 파라미터 모두 Nullable
+    let email: String?
+    let age: Int?
+}
+
 /// 로그인 요청 모델
 public struct LoginRequest: Encodable {
     let username: String
@@ -28,11 +35,3 @@ public struct LoginResponse: Decodable {
     let userId: Int
     let message: String
 }
-
-/// 개인정보 수정 요청 모델
-struct UpdateUserRequest: Encodable {
-    let name: String?
-    let email: String?
-    let age: Int?
-}
-

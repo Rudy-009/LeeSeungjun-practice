@@ -10,8 +10,9 @@ import Foundation
 /// User 관련 API 엔드포인트
 /// Moya의 TargetType 과 비슷하게 구현함
 public enum UserAPI {
-    case register(RegisterRequest)           // POST /api/v1/users - 회원가입
-    case login(LoginRequest)                 // POST /api/v1/auth/login - 로그인
+    case register(RegisterRequest)          // POST /api/v1/users - 회원가입
+    case login(LoginRequest)                // POST /api/v1/auth/login - 로그인
+    case update(Int, UpdateUserRequest)     // PATCH api/v1/users/id
 }
 
 extension UserAPI: TargetType {
@@ -30,6 +31,8 @@ extension UserAPI: TargetType {
             return "/api/v1/users"
         case .login:
             return "/api/v1/auth/login"
+        case .update(let id, _):
+            return "api/v1/users/\(id)"
         }
     }
 
@@ -40,6 +43,8 @@ extension UserAPI: TargetType {
             return .post
         case .login:
             return .post
+        case .update:
+            return .patch
         }
     }
 
@@ -49,9 +54,12 @@ extension UserAPI: TargetType {
         case .register(let request):
             // JSON 인코딩 가능한 객체를 바디로 전송
             return .requestJSONEncodable(request)
-
+            
         case .login(let request):
             // JSON 인코딩 가능한 객체를 바디로 전송
+            return .requestJSONEncodable(request)
+            
+        case .update(_, let request):
             return .requestJSONEncodable(request)
         }
     }
@@ -100,6 +108,22 @@ extension UserAPI {
         let request = LoginRequest(username: username, password: password)
         // BaseResponse로 감싸진 응답 디코딩
         let response: BaseResponse<LoginResponse> = try await provider.request(UserAPI.login(request))
+        guard let data = response.data else {
+            throw NetworkError.noData
+        }
+        
+        return data
+    }
+    
+    public static func performUpdateUser(
+        id: Int,
+        name: String?,
+        email: String?,
+        age: Int?,
+        provider: NetworkProviding = NetworkProvider()
+    ) async throws -> UserResponse {
+        let request = UpdateUserRequest(name: name, email: email, age: age)
+        let response: BaseResponse<UserResponse> = try await provider.request(UserAPI.update(id, request))
         guard let data = response.data else {
             throw NetworkError.noData
         }
