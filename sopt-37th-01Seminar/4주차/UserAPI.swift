@@ -10,9 +10,11 @@ import Foundation
 /// User 관련 API 엔드포인트
 /// Moya의 TargetType 과 비슷하게 구현함
 public enum UserAPI {
-    case register(RegisterRequest)          // POST /api/v1/users - 회원가입
-    case login(LoginRequest)                // POST /api/v1/auth/login - 로그인
-    case update(Int, UpdateUserRequest)     // PATCH api/v1/users/id
+    case delete(Int)     // DELETE   /api/v1/users/id
+    case get(Int)           // GET      /api/v1/users/id
+    case register(RegisterRequest)          // POST     /api/v1/users - 회원가입
+    case login(LoginRequest)                // POST     /api/v1/auth/login - 로그인
+    case update(Int, UpdateUserRequest)     // PATCH    /api/v1/users/id
 }
 
 extension UserAPI: TargetType {
@@ -31,7 +33,7 @@ extension UserAPI: TargetType {
             return "/api/v1/users"
         case .login:
             return "/api/v1/auth/login"
-        case .update(let id, _):
+        case .delete(let id), .get(let id), .update(let id, _):
             return "api/v1/users/\(id)"
         }
     }
@@ -39,6 +41,10 @@ extension UserAPI: TargetType {
     /// The HTTP method used in the request.
     public var method: Method {
         switch self {
+        case .delete:
+            return .delete
+        case .get:
+            return .get
         case .register:
             return .post
         case .login:
@@ -51,6 +57,12 @@ extension UserAPI: TargetType {
     /// The type of HTTP task to be performed.
     public var task: HTTPTask {
         switch self {
+        case .delete:
+            return .requestPlain
+            
+        case .get:
+            return .requestPlain
+            
         case .register(let request):
             // JSON 인코딩 가능한 객체를 바디로 전송
             return .requestJSONEncodable(request)
@@ -74,6 +86,27 @@ extension UserAPI: TargetType {
 // MARK: - Convenience Methods
 
 extension UserAPI {
+    
+    public static func performDeleteUser(
+        id: Int,
+        provider: NetworkProviding = NetworkProvider()
+    ) async throws -> Bool {
+        let response: BaseResponse<EmptyResponse> = try await provider.request(UserAPI.delete(id))
+        return response.success
+    }
+    
+    public static func performGetUser(
+        id: Int,
+        provider: NetworkProviding = NetworkProvider()
+    ) async throws -> UserResponse {
+        let response: BaseResponse<UserResponse> = try await provider.request(UserAPI.get(id))
+        guard let data = response.data else {
+            throw NetworkError.noData
+        }
+        
+        return data
+    }
+    
     /// 회원가입 API 요청 헬퍼
     public static func performRegister(
         username: String,
@@ -130,4 +163,6 @@ extension UserAPI {
         
         return data
     }
+        
+    
 }
