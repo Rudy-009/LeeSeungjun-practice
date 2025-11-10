@@ -131,7 +131,7 @@ final class LoginViewController_Network: BaseViewController {
     
     private let provider: NetworkProviding
     
-    private var userId: Int = 117
+    private var userId: Int = 128
     
     // MARK: - Init
     
@@ -332,12 +332,13 @@ final class LoginViewController_Network: BaseViewController {
             ageTextField.text = String(response.age)
             self.userId = response.id
             switch response.status {
-            case "ACTIVATE":
+            case "ACTIVE":
                 titleLabel.text = "회원 정보 조회 완료"
-            case "INACTIVATE":
+            case "INACTIVE":
                 titleLabel.text = "비활성화된 계정입니다.\n회원가입 해주세요."
             default:
-                return
+                titleLabel.text = "예외 상태: \(response.status)"
+                break
             }
             
         } catch let error as NetworkError {
@@ -432,10 +433,14 @@ final class LoginViewController_Network: BaseViewController {
     @MainActor
     private func performUpdateUser(userId: Int,) async {
         loadingIndicator.startAnimating()
-        
         do {
             // UserAPI의 convenience method 사용
-            let response = try await UserAPI.update(userId, UpdateUserRequest(name: usernameTextField.text, email: emailTextField.text, age: Int(ageTextField.text ?? "0") ?? 0))
+            let _ = try await UserAPI.performUpdateUser(
+                id: userId,
+                name: nameTextField.text,
+                email: emailTextField.text,
+                age: Int(ageTextField.text ?? "0") ?? 0
+            )
             // 성공 시
             titleLabel.text = "회원 정보 수정 성공"
             // showAlert(title: "회원 정보 수정 성공", message: "")

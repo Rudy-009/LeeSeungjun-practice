@@ -34,7 +34,7 @@ extension UserAPI: TargetType {
         case .login:
             return "/api/v1/auth/login"
         case .delete(let id), .get(let id), .update(let id, _):
-            return "api/v1/users/\(id)"
+            return "/api/v1/users/\(id)"
         }
     }
 
